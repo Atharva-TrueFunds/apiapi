@@ -5,6 +5,8 @@ from jose import jwt, JWTError
 from typing import Annotated
 from schema import TokenData
 from db import get_db
+from models import User
+
 SECRET_KEY = "qwertyuiop"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -32,7 +34,7 @@ def decode_access_token(token_jwt):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -40,13 +42,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        name: str = payload.get("sub")
+        if name is None:
             raise credentials_exception
         token_data = TokenData(name=name)
     except JWTError:
         raise credentials_exception
-    user = get_user(get_db, username=token_data.username)
+    user = User(get_db, name=token_data.name)
     if user is None:
         raise credentials_exception
     return user

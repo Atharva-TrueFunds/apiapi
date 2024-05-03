@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from passlib.context import CryptContext
+from schema import UserInDB, UserInfo
+
 
 Base = declarative_base()
 DATABASE_URL = "postgresql://postgres:atharva@localhost/test_api"
@@ -9,6 +12,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_db():
@@ -18,18 +22,21 @@ def get_db():
     finally:
         db.close()
 
-def authenticate_user(get_db, username: str, password: str):
-    user = get_user(get_db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
 
-def get_user(get_db, username: str):
-    if name in get_db:
-        user_dict = get_db[name]
-        return name(**user_dict)
+# def get_user(users, name: str):
+#     if name in users:
+#         user_dict = users[name]
+#         return UserInDB(**user_dict)
+
+
+# def authenticate_user(get_db, name: str, password: str):
+#     user = user(get_db, name)
+#     if not user:
+#         return False
+#     if not verify_password(password, user.hashed_password):
+#         return False
+#     return user
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

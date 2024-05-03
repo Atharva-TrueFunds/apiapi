@@ -1,21 +1,23 @@
 from pydantic import BaseModel
 
 
-class userCreate(BaseModel):
+class UserCreate(BaseModel):
     name: str
     email: str
     number: str
     password: str
-    
+
+
 class TokenData(BaseModel):
     name: str | None = None
 
-class userLogin(BaseModel):
+
+class UserLogin(BaseModel):
     name: str
     password: str
 
 
-class userUpdate(BaseModel):
+class UserUpdate(BaseModel):
     name: str
     email: str
     number: str
@@ -27,5 +29,15 @@ class Item(BaseModel):
     description: str
 
 
+class User:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+
 class UserInDB(BaseModel):
     hashed_password: str
+
+
+class UserInfo(BaseModel):
+    name: str

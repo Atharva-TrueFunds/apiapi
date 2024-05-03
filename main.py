@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from db import get_db, authenticate_user
-from models import User, Item
-from schema import userCreate, userLogin, userUpdate, Item
+from db import get_db
+from schema import User, Item
+from schema import UserCreate, UserLogin, UserUpdate, Item
 from sqlalchemy.exc import SQLAlchemyError
 from passlib.context import CryptContext
 from datetime import timedelta
@@ -30,7 +30,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
 @app.post("/sign_up")
-def create_user(user_data: userCreate, db: Session = Depends(get_db)):
+def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
         db_user = User(
             name=user_data.name,
@@ -48,15 +48,17 @@ def create_user(user_data: userCreate, db: Session = Depends(get_db)):
         print(error_msg)
         raise HTTPException(status_code=500, detail="Error creating user")
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 @app.post("/login")
 def login_user(
-    form_data: Annotated[OAuth2PasswordRequestForm , Depends()],
-) ->userLogin:
-    user = authenticate_user(get_db, form_data.name, form_data.password)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> UserLogin:
+    user = User(form_data.username, form_data.password)
 
-    if not user or not pwd_context.verify(form_data.name, user.password):
+    if not user or not pwd_context.verify(form_data.username, user.password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -64,6 +66,7 @@ def login_user(
         data={"sub": user.id}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @app.get("/user/{user_id}/")
 def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
@@ -75,7 +78,7 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 
 @app.put("/user/{user_id}")
 def update_user_by_id(
-    user_id: int, user_update: userUpdate, db: Session = Depends(get_db)
+    user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
 ):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
