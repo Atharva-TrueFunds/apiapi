@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Security
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
@@ -42,7 +42,7 @@ def get_user(username: str, db=Depends(get_db)) -> Optional[UserInDB]:
         return UserInDB(**user_dict)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[UserInDB]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -50,15 +50,20 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        id: int = payload.get("sub")
-        if id is None:
+        username: str = payload.get("sub")
+        if username is None:
             raise credentials_exception
-        return get_user(id)
+        user = get_user(username)
+        if user is None:
+            raise credentials_exception
+        return user
     except JWTError:
         raise credentials_exception
 
 
-def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+def get_current_active_user(
+    current_user: Optional[UserInDB] = Depends(get_current_user),
+) -> User:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
