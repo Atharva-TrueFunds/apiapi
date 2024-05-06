@@ -2,17 +2,22 @@ from fastapi import FastAPI, HTTPException, Depends, status, Security
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-from typing import Annotated
+from typing import Optional
 from schema import TokenData
 from db import get_db
 from models import User
+from schema import UserInDB
 
 SECRET_KEY = "qwertyuiop"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+app = FastAPI()
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -23,18 +28,21 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def decode_access_token(token_jwt):
+def decode_access_token(token_jwt: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token_jwt, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.JWTError:
+    except JWTError:
         return None
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+def get_user(username: str, db=Depends(get_db)) -> Optional[UserInDB]:
+    if username in db:
+        user_dict = db[username]
+        return UserInDB(**user_dict)
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -42,13 +50,15 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        name: str = payload.get("sub")
-        if name is None:
+        id: int = payload.get("sub")
+        if id is None:
             raise credentials_exception
-        token_data = TokenData(name=name)
+        return get_user(id)
     except JWTError:
         raise credentials_exception
-    user = User(get_db, name=token_data.name)
-    if user is None:
-        raise credentials_exception
-    return user
+
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user

@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from db import get_db
-from schema import User, Item
+from models import User, Item
 from schema import UserCreate, UserLogin, UserUpdate, Item
 from sqlalchemy.exc import SQLAlchemyError
 from passlib.context import CryptContext
 from datetime import timedelta
 from jwt_utils import (
     create_access_token,
-    get_current_user,
+    get_current_active_user,
 )
+import uvicorn
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 
@@ -54,17 +55,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.post("/login")
 def login_user(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-) -> UserLogin:
-    user = User(form_data.username, form_data.password)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.name == form_data.username).first()
 
-    if not user or not pwd_context.verify(form_data.username, user.password):
+    if not user or not pwd_context.verify(form_data.password, user.password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.id}, expires_delta=access_token_expires
     )
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -106,15 +108,15 @@ def delete_user_by_id(user_id: int, db: Session = Depends(get_db)):
     return {"message": "User deleted successfully", "User_Details": db_user}
 
 
-@app.post("/add_items", response_model=Item)
+@app.post("/item", response_model=Item)
 def add_items(
     create_item: Item,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     try:
         db_item_dict = create_item.dict()
-        db_item_dict["user_id"] = current_user.id
+        db_item_dict["id"] = current_user.id
         db_item = Item(**db_item_dict)
         db.add(db_item)
         db.commit()
@@ -123,3 +125,7 @@ def add_items(
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error adding item")
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
