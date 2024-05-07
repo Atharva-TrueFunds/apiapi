@@ -42,7 +42,7 @@ def get_user(username: str, db=Depends(get_db)) -> Optional[UserInDB]:
         return UserInDB(**user_dict)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[UserInDB]:
+def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -50,20 +50,17 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[UserInDB]:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: int = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-        user = get_user(username)
-        if user is None:
-            raise credentials_exception
-        return user
+        token_data = TokenData(user_id=user_id)
+        return token_data
     except JWTError:
         raise credentials_exception
+    return token_data
 
 
-def get_current_active_user(
-    current_user: Optional[UserInDB] = Depends(get_current_user),
-) -> User:
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
