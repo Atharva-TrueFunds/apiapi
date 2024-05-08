@@ -9,7 +9,7 @@ class UserCreate(BaseModel):
 
 
 class TokenData(BaseModel):
-    name: str | None = None
+    user_id: int
 
 
 class UserLogin(BaseModel):

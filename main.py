@@ -13,6 +13,7 @@ from jwt_utils import (
 import uvicorn
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
+from pydantic import BaseModel
 
 
 from jose import jwt, JWTError
@@ -64,7 +65,7 @@ def login_user(
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.id}, expires_delta=access_token_expires
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -115,14 +116,13 @@ def add_items(
     db: Session = Depends(get_db),
 ):
     try:
-        db_item_dict = create_item.dict()
-        db_item_dict["id"] = current_user.id
-        db_item = Item(**db_item_dict)
+        db_item = Item(**create_item.dict(), user_id=current_user.user_id)
         db.add(db_item)
         db.commit()
         db.refresh(db_item)
         return db_item
-    except SQLAlchemyError:
+    except SQLAlchemyError as error:
+        print(error)
         db.rollback()
         raise HTTPException(status_code=500, detail="Error adding item")
 
