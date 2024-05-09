@@ -110,7 +110,7 @@ def delete_user_by_id(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/item", response_model=Item)
-def add_items(
+async def add_items(
     create_item: Item,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
@@ -120,7 +120,7 @@ def add_items(
         db.add(item_data)
         db.commit()
         db.refresh(item_data)
-        return item_data
+        return {"message": "Item created successfully"}
     except SQLAlchemyError as error:
         print(error)
         db.rollback()

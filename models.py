@@ -16,7 +16,7 @@ class User(Base):
 
 
 class Item(Base):
-    __tablename__ = "item_data"
+    __tablename__ = "items"
     item_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     description = Column(String(50))
