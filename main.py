@@ -14,7 +14,7 @@ import uvicorn
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 from pydantic import BaseModel
-
+import models
 
 from jose import jwt, JWTError
 
@@ -116,11 +116,11 @@ def add_items(
     db: Session = Depends(get_db),
 ):
     try:
-        db_item = Item(**create_item.dict(), user_id=current_user.user_id)
-        db.add(db_item)
+        item_data = models.Item(**create_item.dict(), user_id=current_user.user_id)
+        db.add(item_data)
         db.commit()
-        db.refresh(db_item)
-        return db_item
+        db.refresh(item_data)
+        return item_data
     except SQLAlchemyError as error:
         print(error)
         db.rollback()

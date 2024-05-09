@@ -12,13 +12,13 @@ class User(Base):
     email = Column(String(50))
     number = Column(String(10))
     password = Column(String(100))
-    item = relationship("Item", back_populates="user")
+    items = relationship("Item", back_populates="user")
 
 
 class Item(Base):
-    __tablename__ = "items"
+    __tablename__ = "item_data"
     item_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     description = Column(String(50))
     user_id = Column(String(50), ForeignKey("users.id"))
-    user = relationship("User", back_populates="item")
+    user = relationship("User", back_populates="items")
