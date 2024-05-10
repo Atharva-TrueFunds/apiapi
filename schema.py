@@ -31,6 +31,7 @@ class UserUpdate(BaseModel):
 class Item(BaseModel):
     name: str
     description: str
+    color: str
 
 
 class User:

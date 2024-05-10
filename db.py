@@ -22,6 +22,7 @@ class Data_Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     description = Column(String(50))
+    color = Column(String(50))
     user_id = Column(Integer, ForeignKey("users.id"))
 
 
