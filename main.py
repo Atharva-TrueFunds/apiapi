@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from db import get_db
-from models import User, Item
+from db import User, Data_Item
 from schema import UserCreate, UserLogin, UserUpdate, Item
 from sqlalchemy.exc import SQLAlchemyError
 from passlib.context import CryptContext
@@ -116,10 +116,11 @@ async def add_items(
     db: Session = Depends(get_db),
 ):
     try:
-        item_data = models.Item(**create_item.dict(), user_id=current_user.user_id)
+        item_data = Data_Item(**create_item.dict(), user_id=current_user.user_id)
         db.add(item_data)
         db.commit()
         db.refresh(item_data)
+        return item_data
         return {"message": "Item created successfully"}
     except SQLAlchemyError as error:
         print(error)

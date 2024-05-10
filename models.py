@@ -6,19 +6,19 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "User"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     email = Column(String(50))
     number = Column(String(10))
     password = Column(String(100))
-    items = relationship("Item", back_populates="user")
+    items = relationship("Data_Item", back_populates="user")
 
 
-class Item(Base):
-    __tablename__ = "items"
-    item_id = Column(Integer, primary_key=True, index=True)
+class Data_Item(Base):
+    __tablename__ = "Item"
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
     description = Column(String(50))
-    user_id = Column(String(50), ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("User.id"))
     user = relationship("User", back_populates="items")
